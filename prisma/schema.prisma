@@ -1,0 +1,81 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String
+  events    Event[]
+  createdAt DateTime @default(now())
+}
+
+model Event {
+  id          Int             @id @default(autoincrement())
+  title       String
+  slug        String          @unique
+  description String?
+  date        DateTime
+  location    String?
+  imageUrl    String?
+  attendees   Int             @default(0)
+  price       Float?
+  time        String?
+  createdBy   Int
+  user        User            @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+
+  categories  EventCategory[]
+  tags        EventTag[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@index([createdBy])
+  @@index([slug])
+}
+
+model Category {
+  id        Int             @id @default(autoincrement())
+  name      String          @unique
+  slug      String          @unique
+  events    EventCategory[]
+  createdAt DateTime        @default(now())
+}
+
+model Tag {
+  id        Int             @id @default(autoincrement())
+  name      String          @unique
+  slug      String          @unique
+  events    EventTag[]
+  createdAt DateTime        @default(now())
+}
+
+model EventCategory {
+  eventId    Int
+  categoryId Int
+  event      Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([eventId, categoryId])
+  @@index([eventId])
+  @@index([categoryId])
+}
+
+model EventTag {
+  eventId Int
+  tagId   Int
+  event   Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  tag     Tag   @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([eventId, tagId])
+  @@index([eventId])
+  @@index([tagId])
+}
