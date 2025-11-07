@@ -1,14 +1,23 @@
 import Link from 'next/link'
+import SortableHeader from '../ui/sortable-header'
+import { generatePaginationLinks } from '../../lib/utils'
 
-type Props = {
+type ServerTableProps = {
   entity: string
-  data: Array<Record<string, any>>
+  data: {
+    data: Array<Record<string, any>>
+    meta?: {
+      page?: number
+      limit?: number
+      totalItems?: number
+      totalPages?: number
+    }
+  }
 }
 
-// Server component: simple, generic table renderer for server-provided records.
-export default function ServerTable({ entity, data }: Props) {
-  const rows = data || []
-  // Derive columns automatically from the first row's keys
+export default function ServerTable({ entity, data }: ServerTableProps) {
+  const rows = data.data || []
+  const meta = data.meta
   const cols = rows.length > 0 ? Object.keys(rows[0]) : []
 
   return (
@@ -32,17 +41,9 @@ export default function ServerTable({ entity, data }: Props) {
           <thead className="bg-gray-50">
             <tr>
               {cols.map((col) => (
-                <th
-                  key={col}
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  {col}
-                </th>
+                <SortableHeader key={col} column={col} />
               ))}
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
-              </th>
+              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"></th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
@@ -80,6 +81,53 @@ export default function ServerTable({ entity, data }: Props) {
           </tbody>
         </table>
       </div>
+
+      {/* Pagination */}
+      {meta && meta.totalPages && meta.totalPages > 1 && (
+        <div className="px-4 py-3 border-t bg-white flex items-center justify-between">
+          <div className="text-sm text-gray-700">
+            Showing page <span className="font-medium">{meta.page}</span> of{' '}
+            <span className="font-medium">{meta.totalPages}</span>
+            {typeof meta.totalItems === 'number' && (
+              <span className="ml-2">· {meta.totalItems} total</span>
+            )}
+          </div>
+
+          <nav className="flex items-center space-x-1" aria-label="Pagination">
+            {meta.page && meta.page > 1 ? (
+              <Link
+                href={`${`/admin/${entity}`}?page=${meta.page - 1}&limit=${meta.limit || ''}`}
+                className="px-3 py-1 rounded-md border bg-white text-sm hover:bg-gray-50"
+              >
+                Previous
+              </Link>
+            ) : (
+              <button className="px-3 py-1 rounded-md border bg-gray-100 text-sm text-gray-400 cursor-not-allowed">
+                Previous
+              </button>
+            )}
+
+            {renderPageLinks(
+              meta.page || 1,
+              meta.totalPages || 1,
+              (p) => `${`/admin/${entity}`}?page=${p}&limit=${meta.limit || ''}`
+            )}
+
+            {meta.page && meta.page < (meta.totalPages || 1) ? (
+              <Link
+                href={`${`/admin/${entity}`}?page=${(meta.page || 1) + 1}&limit=${meta.limit || ''}`}
+                className="px-3 py-1 rounded-md border bg-white text-sm hover:bg-gray-50"
+              >
+                Next
+              </Link>
+            ) : (
+              <button className="px-3 py-1 rounded-md border bg-gray-100 text-sm text-gray-400 cursor-not-allowed">
+                Next
+              </button>
+            )}
+          </nav>
+        </div>
+      )}
     </div>
   )
 }
@@ -87,7 +135,6 @@ export default function ServerTable({ entity, data }: Props) {
 function renderCell(value: any) {
   if (value === null || value === undefined) return <span className="text-gray-400">—</span>
   if (typeof value === 'object') {
-    // Simple handling for relations or nested objects: show id or JSON
     if ('id' in value) return String((value as any).id)
     try {
       return JSON.stringify(value)
@@ -96,4 +143,27 @@ function renderCell(value: any) {
     }
   }
   return String(value)
+}
+
+function renderPageLinks(current: number, total: number, getHref: (p: number) => string) {
+  const links = generatePaginationLinks(current, total)
+
+  return links.map((p) => {
+    if (p === current) {
+      return (
+        <span key={p} className="px-3 py-1 rounded-md bg-blue-600 text-white text-sm">
+          {p}
+        </span>
+      )
+    }
+    return (
+      <Link
+        key={p}
+        href={getHref(p)}
+        className="px-3 py-1 rounded-md border bg-white text-sm hover:bg-gray-50"
+      >
+        {p}
+      </Link>
+    )
+  })
 }

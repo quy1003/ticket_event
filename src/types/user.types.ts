@@ -4,10 +4,12 @@ export type User = PrismaUser
 
 export type PublicUser = Omit<User, 'password'>
 
-export interface CreateUserDTO {
+export interface UserType {
   name: string
   email: string
   password: string
+  createdAt?: string
+  updatedAt?: string
 }
 
-export type UpdateUserDTO = Partial<CreateUserDTO>
+export type UpdateUserDTO = Partial<UserType>
