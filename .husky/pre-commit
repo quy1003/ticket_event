@@ -1,9 +1,5 @@
-
 #!/bin/sh
 . "$(dirname -- "$0")/_/husky.sh"
 
-# Run full project formatting before lint-staged (prettier --write .)
-npm run format
-
-# Then run lint-staged to lint and stage files
+# Chỉ lint và format những file staged
 npx lint-staged
